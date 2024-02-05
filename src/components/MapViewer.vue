@@ -2,11 +2,13 @@
     <div class="relative h-full w-full">
         <canvas id="deck-canvas-map-viewer" class="h-full w-full" />
         <MapboxMap
-            style="height: 400px"
+            class="h-full"
             :access-token="token"
             map-style="mapbox://styles/mapbox/light-v11"
             :center="computedMapCenter"
             :zoom="zoom"
+            :bearing="bearing"
+            :pitch="pitch"
         />
     </div>
 </template>
@@ -30,6 +32,8 @@ let longitudes: number[] = [];
 const mapCenter = reactive([0, 0]);
 const computedMapCenter = computed(() => [mapCenter[0], mapCenter[1]]);
 const zoom = ref(1);
+const bearing = ref(1);
+const pitch = ref(1);
 
 const DECKGL_SETTINGS = {
     canvas: "deck-canvas-map-viewer",
@@ -48,9 +52,12 @@ onMounted(() => {
 
     deck = new Deck({
         onViewStateChange: ({ viewState }) => {
+            console.log(viewState.bearing);
             mapCenter[0] = viewState.longitude;
             mapCenter[1] = viewState.latitude;
             zoom.value = viewState.zoom;
+            bearing.value = viewState.bearing;
+            pitch.value = viewState.pitch;
         },
         ...DECKGL_SETTINGS,
     });

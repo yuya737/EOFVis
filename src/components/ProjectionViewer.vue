@@ -7,7 +7,7 @@
             />
             <div
                 id="minimap-background"
-                class="absolute left-[20px] top-[20px] z-[1] h-1/4 w-1/4 rounded-md bg-gray-100 shadow-md"
+                class="absolute left-[20px] top-[20px] z-[1] aspect-square h-1/4 w-1/4 rounded-md bg-gray-100 shadow-md"
             />
 
             <div
@@ -45,10 +45,12 @@ import {
 import {
     Deck,
     OrthographicView,
+    OrbitView,
     OrthographicViewport,
     MapView,
+    COORDINATE_SYSTEM,
 } from "@deck.gl/core";
-import { ScatterplotLayer, PathLayer } from "deck.gl/typed";
+import { ScatterplotLayer, PathLayer, PointCloudLayer } from "deck.gl/typed";
 import { LayersList, OrthographicViewState, Layer } from "@deck.gl/core/typed";
 import { AxisLayer } from "./utils/AxisLayer";
 import API from "@/api/api";
@@ -59,6 +61,11 @@ const store = useStore();
 const bottomText = ref(
     "MPI-GE Ensemble Surface Temperature RCPs 2.6, 4.5, and 8.5",
 );
+
+const orbitView = new OrbitView({
+    id: "main",
+    controller: true,
+});
 
 const orthoView = new OrthographicView({
     id: "main",
@@ -122,40 +129,35 @@ onMounted(() => {
     });
 });
 
-function mytooltip({ object }) {
-    console.log(object);
-    return (
-        object && {
-            html: `<h2>${object.text}</h2><div>${object.text}</div>`,
-            style: {
-                backgroundColor: "#f00",
-                fontSize: "0.8em",
-                "z-index": 1000,
-            },
-        }
-    );
-}
-
 async function initalLayerProps() {
-    const point_data = await API.fetchData("spatial", true, null);
+    const point_data = await API.fetchData("spatial", true, {
+        file: "/Users/yuyakawakami/Research/EOF_ensemble/eof_data/rcpall_ts_undetrended_spatial_1.csv",
+        filter_string: "rcp45",
+        temporal: false,
+        three_d: false,
+    });
     let scatterplotLayer = new ScatterplotLayer({
+        // let scatterplotLayer = new PointCloudLayer({
         id: "scatterplot-layer",
         data: point_data["points"],
         // data: data,
         pickable: true,
         getPosition: (d: any) => d.coords,
-        getRadius: 0.1,
-        getFillColor: (d) => {
-            if (d.text.includes("26")) {
+        getRadius: 0.06,
+        // getFillColor: (d) => {
+        getColor: (d) => {
+            if (d.text.includes("RCP26")) {
                 return [0, 0, 255];
-            } else if (d.text.includes("45")) {
+            } else if (d.text.includes("RCP45")) {
                 return [0, 255, 0];
-            } else if (d.text.includes("85")) {
+            } else if (d.text.includes("RCP85")) {
                 return [255, 0, 0];
             } else {
                 return [255, 255, 255];
             }
         },
+        // coordinateSystem: COORDINATE_SYSTEM.CARTESIAN,
+        // radiusPixels: 4,
         autoHighlight: true,
         onHover: ({ object, x, y }) => {
             const el = document.getElementById("tooltip");
@@ -164,7 +166,6 @@ async function initalLayerProps() {
                 return;
             }
             const matches = object.text.match(/RCP(\d+):E(\d+)/);
-            store.updateID(matches[1], matches[2]);
             // console.log('sdfsdf')
             if (object) {
                 el.innerHTML = `${object.text}`;
@@ -176,7 +177,34 @@ async function initalLayerProps() {
                 el.style.opacity = 0.0;
             }
         },
+        onClick: ({ object, x, y }) => {
+            const matches = object.text.match(/RCP(\d+):E(\d+)/);
+            store.updateID(matches[1], matches[2]);
+        },
     });
+    // let d = [
+    //     {
+    //         position: [0, 0, 0],
+    //         normal: [0, 0, 1],
+    //         color: [255, 0, 0],
+    //     },
+    //     {
+    //         position: [1, 1, 1],
+    //         normal: [0, 0, 1],
+    //         color: [0, 255, 0],
+    //     },
+    // ];
+    // const layer = new PointCloudLayer({
+    //     id: "point-cloud-layer",
+    //     data: d,
+    //     pickable: false,
+    //     coordinateSystem: COORDINATE_SYSTEM.CARTESIAN,
+    //     coordinateOrigin: [0, 0, 0],
+    //     radiusPixels: 4,
+    //     getPosition: (d) => d.position,
+    //     getNormal: (d) => d.normal,
+    //     getColor: (d) => d.color,
+    // });
     let axis = new AxisLayer(-20, 20, -20, 20, 5);
 
     return [...axis.getLayers(), scatterplotLayer];

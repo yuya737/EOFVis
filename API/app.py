@@ -42,22 +42,43 @@ def random():
     return make_response(jsonify(res_data), 200)
 
 
-@app.route("/spatial", methods=["GET"])
+@app.route("/spatial", methods=["POST"])
 def spatial():
     """
     testing for now
     """
+
+    request_payload = request.get_json()
+    print(request_payload)
+
     # generate 100 random points inside a 50x50 square as floats
     df = cp.calculate_projection(
-        "/Users/yuyakawakami/Research/EOF_ensemble/eof_data/rcpall_ts_undetrended_spatial_0.csv",
-        False,
+        request_payload["file"],
+        request_payload["filter_string"],
+        request_payload["temporal"],
+        request_payload["three_d"]
+        # # "/Users/yuyakawakami/Research/EOF_ensemble/eof_data/rcpall_ts_undetrended_spatial_0.csv",
+        # "/Users/yuyakawakami/Research/EOF_ensemble/eof_data/rcpall_pr_masked_west_pacific_temporal_0.csv",
+        # filter_string="",
+        # temporal=True,
+        # three_d=False,
+    )
+    print(
+        f"xmin: {np.min(df['Dimension 1'])}, xmax: {np.max(df['Dimension 1'])}, ymin: {np.min(df['Dimension 2'])}, ymax: {np.max(df['Dimension 2'])}"
     )
 
     pattern = r"_rcp(\d{2})_r(\d{3})i"
 
     res_data = {
         "points": [
-            # {"coords": [row["Dimension 1"], row["Dimension 2"]], "text": index}
+            # {
+            #     "coords": [
+            #         float(row["Dimension 1"]),
+            #         float(row["Dimension 2"]),
+            #         float(row["Dimension 3"]),
+            #     ],
+            #     "text": index,
+            # }
             {
                 "coords": [float(row["Dimension 1"]), float(row["Dimension 2"])],
                 "text": index,

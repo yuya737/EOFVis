@@ -11,7 +11,7 @@ class API {
 
         let init = {
             method: 'GET',
-            header: {
+            headers: {
                 'Access-Control-Allow-Origin': '*',
                 // 'Content-Type': 'application/json'
             }
@@ -19,7 +19,7 @@ class API {
         if (params) {
             init = {
                 method: 'POST',
-                header: {
+                headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(params)
