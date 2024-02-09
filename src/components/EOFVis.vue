@@ -1,5 +1,5 @@
 <template>
-    <Splitter style="height: 100%" layout="vertical">
+    <Splitter style="height: 100%" layout="horizontal">
         <SplitterPanel style="height: 100%" :size="60">
             <ProjectionViewer class="h-full" />
         </SplitterPanel>

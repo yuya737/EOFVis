@@ -50,6 +50,7 @@ import {
     MapView,
     COORDINATE_SYSTEM,
 } from "@deck.gl/core";
+import { scaleLinear, interpolatePRGn, interpolateBlues } from "d3";
 import { ScatterplotLayer, PathLayer, PointCloudLayer } from "deck.gl/typed";
 import { LayersList, OrthographicViewState, Layer } from "@deck.gl/core/typed";
 import { AxisLayer } from "./utils/AxisLayer";
@@ -57,6 +58,11 @@ import API from "@/api/api";
 import { useStore } from "@/store/main";
 
 const store = useStore();
+
+const fileName =
+    "/Users/yuyakawakami/Research/EOF_ensemble/eof_data/rcpall_pr_south_america_spatial_1_decadal.csv";
+// "/Users/yuyakawakami/Research/EOF_ensemble/eof_data/ssp_sim_all_spatial_0.csv";
+// "/Users/yuyakawakami/Research/EOF_ensemble/eof_data/pr_ssp_sim_all_spatial_1.csv";
 
 const bottomText = ref(
     "MPI-GE Ensemble Surface Temperature RCPs 2.6, 4.5, and 8.5",
@@ -130,12 +136,33 @@ onMounted(() => {
 });
 
 async function initalLayerProps() {
-    const point_data = await API.fetchData("spatial", true, {
-        file: "/Users/yuyakawakami/Research/EOF_ensemble/eof_data/rcpall_ts_undetrended_spatial_1.csv",
-        filter_string: "rcp45",
+    bottomText.value = "Projections: " + fileName.split("/").pop();
+    const point_data = await API.fetchData("spatial_MPI", true, {
+        file: fileName,
+        filter_string: "",
         temporal: false,
         three_d: false,
     });
+
+    const colorInterp = (val) =>
+        interpolateBlues(scaleLinear().domain([0, 10]).range([0, 1])(val))
+            .replace(/[^\d,]/g, "")
+            .split(",")
+            .map((d) => Number(d));
+
+    const color = (d) => {
+        const matches = d.text.match(/RCP(\d+):E(\d+):D(\d+)/);
+        return colorInterp(matches[3]);
+        if (d.text.includes("RCP26")) {
+            return [0, 0, 255];
+        } else if (d.text.includes("RCP45")) {
+            return [0, 255, 0];
+        } else if (d.text.includes("RCP85")) {
+            return [255, 0, 0];
+        } else {
+            return [0, 0, 0];
+        }
+    };
     let scatterplotLayer = new ScatterplotLayer({
         // let scatterplotLayer = new PointCloudLayer({
         id: "scatterplot-layer",
@@ -145,17 +172,18 @@ async function initalLayerProps() {
         getPosition: (d: any) => d.coords,
         getRadius: 0.06,
         // getFillColor: (d) => {
-        getColor: (d) => {
-            if (d.text.includes("RCP26")) {
-                return [0, 0, 255];
-            } else if (d.text.includes("RCP45")) {
-                return [0, 255, 0];
-            } else if (d.text.includes("RCP85")) {
-                return [255, 0, 0];
-            } else {
-                return [255, 255, 255];
-            }
-        },
+        getColor: color,
+        // getColor: (d) => {
+        //     if (d.text.includes("RCP26")) {
+        //         return [0, 0, 255];
+        //     } else if (d.text.includes("RCP45")) {
+        //         return [0, 255, 0];
+        //     } else if (d.text.includes("RCP85")) {
+        //         return [255, 0, 0];
+        //     } else {
+        //         return [255, 255, 255];
+        //     }
+        // },
         // coordinateSystem: COORDINATE_SYSTEM.CARTESIAN,
         // radiusPixels: 4,
         autoHighlight: true,
@@ -165,6 +193,7 @@ async function initalLayerProps() {
                 el.style.display = "none";
                 return;
             }
+            console.log(object.text);
             const matches = object.text.match(/RCP(\d+):E(\d+)/);
             // console.log('sdfsdf')
             if (object) {
@@ -178,8 +207,7 @@ async function initalLayerProps() {
             }
         },
         onClick: ({ object, x, y }) => {
-            const matches = object.text.match(/RCP(\d+):E(\d+)/);
-            store.updateID(matches[1], matches[2]);
+            store.updateID(fileName, object.text);
         },
     });
     // let d = [
@@ -205,7 +233,7 @@ async function initalLayerProps() {
     //     getNormal: (d) => d.normal,
     //     getColor: (d) => d.color,
     // });
-    let axis = new AxisLayer(-20, 20, -20, 20, 5);
+    let axis = new AxisLayer(-20, 20, -20, 20, 2.5);
 
     return [...axis.getLayers(), scatterplotLayer];
 }
